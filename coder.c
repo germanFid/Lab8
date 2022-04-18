@@ -16,8 +16,14 @@ int main(int argc, char *argv[])
 
     if(containerFile && inputFile)
     {
+        if(checkBMPFile(containerFile))
+        {
+            printWrongFiles();
+            return 0;
+        }
+
         fSize = calculateBMPSize(containerFile);
-        printf("Size: %u", fSize);
+        printf("Size: %u\n", fSize);
     }
 
     else
