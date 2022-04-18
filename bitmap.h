@@ -1,38 +1,89 @@
+#define WORD uint16_t
+#define DWORD uint32_t
+#define LONG uint32_t
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-short checkBMPFile(FILE* f) // check if file is a bmp one
+typedef struct tagBITMAPFILEHEADER
 {
-    uint8_t header[2]; // .bmp file header (aka 'BM')
-    int result;
+    WORD bfType;  //specifies the file type
+    DWORD bfSize;  //specifies the size in bytes of the bitmap file
+    WORD bfReserved1;  //reserved; must be 0
+    WORD bfReserved2;  //reserved; must be 0
+    DWORD bfOffBits;  //specifies the offset in bytes from the bitmapfileheader to the bitmap bits
+}BITMAPFILEHEADER;
 
-    result = fread(&header, 2, 1, f);
-    fseek(f, 0, SEEK_SET);
+typedef struct tagBITMAPINFOHEADER
+{
+    DWORD biSize;  //specifies the number of bytes required by the struct
+    LONG biWidth;  //specifies width in pixels
+    LONG biHeight;  //specifies height in pixels
+    WORD biPlanes;  //specifies the number of color planes, must be 1
+    WORD biBitCount;  //specifies the number of bits per pixel
+    DWORD biCompression;  //specifies the type of compression
+    DWORD biSizeImage;  //size of image in bytes
+    LONG biXPelsPerMeter;  //number of pixels per meter in x axis
+    LONG biYPelsPerMeter;  //number of pixels per meter in y axis
+    DWORD biClrUsed;  //number of colors used by the bitmap
+    DWORD biClrImportant;  //number of colors that are important
+}BITMAPINFOHEADER;
 
-    if (header[0] == 66 && header[1] == 77)
+unsigned char *LoadBitmapFile(FILE *filePtr, BITMAPINFOHEADER *bitmapInfoHeader, BITMAPFILEHEADER *bitmapFileHeader)
+{
+    // BITMAPFILEHEADER bitmapFileHeader;  //our bitmap file header
+    unsigned char *bitmapImage;  //store image data
+    int imageIdx=0;  //image index counter
+    unsigned char tempRGB;  //our swap variable
+
+    //read the bitmap file header
+    fread(&bitmapFileHeader, sizeof(BITMAPFILEHEADER),1,filePtr);
+
+    //verify that this is a .BMP file by checking bitmap id
+    if (bitmapFileHeader->bfType !=0x4D42)
     {
-        return 0;
+        fclose(filePtr);
+        return NULL;
     }
 
-    return -1;
-}
+    //read the bitmap info header
+    fread(bitmapInfoHeader, sizeof(BITMAPINFOHEADER),1,filePtr); 
 
-unsigned int calculateFileSize(FILE* f)
-{
-    uint32_t resultSize;
-    uint8_t bfSize[4];
+    //move file pointer to the beginning of bitmap data
+    fseek(filePtr, bitmapFileHeader->bfOffBits, SEEK_SET);
 
-    fseek(f, 0x02, SEEK_SET); // go to file size in .bmp structure
-    fread(&bfSize, 4, 1, f);
+    //allocate enough memory for the bitmap image data
+    bitmapImage = (unsigned char*)malloc(bitmapInfoHeader->biSizeImage);
 
-    for (size_t i = 0; i < 4; i++)
+    //verify memory allocation
+    if (!bitmapImage)
     {
-        printf("%X ", bfSize[i]);
+        free(bitmapImage);
+        fclose(filePtr);
+        return NULL;
     }
 
-    // printf("%d", atoi(&bfSize));
-    
+    //read in the bitmap image data
+    fread(bitmapImage,bitmapInfoHeader->biSizeImage,1,filePtr);
 
-    return resultSize;
+    //make sure bitmap image data was read
+    if (bitmapImage == NULL)
+    {
+        fclose(filePtr);
+        return NULL;
+    }
+
+    //swap the R and B values to get RGB (bitmap is BGR)
+    for (imageIdx = 0;imageIdx < bitmapInfoHeader->biSizeImage;imageIdx+=3)
+    {
+        tempRGB = bitmapImage[imageIdx];
+        bitmapImage[imageIdx] = bitmapImage[imageIdx + 2];
+        bitmapImage[imageIdx + 2] = tempRGB;
+    }
+
+    //close file and return bitmap image data
+    fclose(filePtr);
+    return bitmapImage;
 }
