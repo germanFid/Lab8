@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     FILE* containerFile = fopen(argv[1], "rw");
     FILE* inputFile = fopen(argv[2], "r");
 
-    unsigned int fSize;
+    unsigned int containerSize;
 
     if(containerFile && inputFile)
     {
@@ -21,9 +21,8 @@ int main(int argc, char *argv[])
             printWrongFiles();
             return 0;
         }
-
-        fSize = calculateBMPSize(containerFile);
-        printf("Size: %u\n", fSize);
+        
+        containerSize = calculateFileSize(containerFile);
     }
 
     else

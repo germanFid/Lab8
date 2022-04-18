@@ -18,8 +18,21 @@ short checkBMPFile(FILE* f) // check if file is a bmp one
     return -1;
 }
 
-unsigned int calculateBMPSize(FILE* f)
+unsigned int calculateFileSize(FILE* f)
 {
-    int resultSize;
+    uint32_t resultSize;
+    uint8_t bfSize[4];
+
+    fseek(f, 0x02, SEEK_SET); // go to file size in .bmp structure
+    fread(&bfSize, 4, 1, f);
+
+    for (size_t i = 0; i < 4; i++)
+    {
+        printf("%X ", bfSize[i]);
+    }
+
+    // printf("%d", atoi(&bfSize));
+    
+
     return resultSize;
 }
