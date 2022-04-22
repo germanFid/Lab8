@@ -1,7 +1,8 @@
 #include "bitmap.h"
 #include "ui.h"
-#include "config.h"
 #include "byte.h"
+
+#define EXTENTION_SIZE 6
 
 int calculateFileSize(FILE* f)
 {
@@ -48,21 +49,35 @@ int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFi
         unsigned char c;
         fread(&c, 1, 1, inputFile);
         bInit(&dataByte, c);
+
+        if (operations < 10)
+            printf("--- %X ---\n", c);
         
-        int read = 0;
-        for (size_t j = 0; j < 8 / degree + 1; j++)
+        int read = 1;
+        for (size_t j = 0; j < 8 / degree; j++)
         {
             // Берем очередной байт и пересекаем его с битмаской
-            printf("- %X ", containerBitmapData[cBitmapDataCounter]);
+            if (operations < 10)
+                printf("- %X ", containerBitmapData[cBitmapDataCounter]);
             containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
-            printf("%X\n", containerBitmapData[cBitmapDataCounter]);
+            
+            if (operations < 10)
+                printf("%X ", containerBitmapData[cBitmapDataCounter]);
 
+            if (operations < 10)
+                printf("(%d %d)", read, read + degree);
             containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
-            read += degree;
 
+            if (operations < 10)
+                printf(" + %X", bGetBits(read, read + degree, &dataByte));
+
+            if (operations < 10)
+                printf(" = %X\n", containerBitmapData[cBitmapDataCounter]);
+
+            read += degree;
+            // printf("> j\n");
             operations++;
             cBitmapDataCounter++;
-            // printf("> j\n");
         }
     }
     return operations;
@@ -107,6 +122,12 @@ int main(int argc, char *argv[])
     int iHSize = sizeof(containerBitmapInfoHeader);
     int fHSize = sizeof(containerBitmapFileHeader);
 
+    for (size_t i = 0; i < 10; i++)
+    {
+        printf(">>> %X\n", containerBitmapData[i]);
+    }
+    
+
     int pCheck = coverPrecheck(containerBitmapFileHeader, inputFile, packingDegree);
     
     if (pCheck)
@@ -115,64 +136,42 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    printf("PreCheck OK!\n");
+    printf("PreCheck OK!\n\n");
+
+    fclose(containerFile);
+    containerFile = fopen(argv[1], "rb");
 
     FILE* resultFile = fopen("result.bmp", "wb");
-    // fwrite(&containerBitmapFileHeader, 1, fHSize, resultFile);
-    // fwrite(&containerBitmapInfoHeader, 1, iHSize, resultFile);
-    // fseek(containerFile, fHSize + iHSize, SEEK_SET);
+    printf("Writing %d bytes before bitmap data...\n", containerBitmapFileHeader.bfOffBits);
 
-    // printf(">>> %lX", ftell(containerFile));
-
-    // for (size_t i = fHSize + iHSize; i < containerBitmapFileHeader.bfOffBits; i++)
-    // {
-    //     unsigned char byte;
-    //     fread(&byte, 1, 1, containerFile);
-    //     printf("%X ", byte);
-    //     fwrite(&byte, 1, 1, resultFile);
-    // }
-
-    fseek(containerFile, 0, SEEK_SET);
-
-    // for (size_t i = 0; i < containerBitmapFileHeader.bfOffBits; i++)
-    // {
-    //     unsigned char byte;
-    //     fread(byte, 1, 1, containerFile);
-    //     printf("%d ", byte);
-    //     fwrite(byte, 1, 1, resultFile);
-    // }
-
-    printf(">> %ld\n", ftell(containerFile));
-    printf(">> %ld\n", ftell(resultFile));
-
-    unsigned char bytes[containerBitmapFileHeader.bfOffBits];
-    fread(bytes, 1, containerBitmapFileHeader.bfOffBits, containerFile);
-
-    for (size_t i = 0; i < 6; i++)
+    unsigned char byte;
+    for (size_t i = 0; i < containerBitmapFileHeader.bfOffBits; i++)
     {
-        printf(">>> %X\n", bytes[i]);
+        fread(&byte, 1, 1, containerFile);
+        // printf("> %X\n", byte);
+        fwrite(&byte, 1, 1, resultFile);
     }
     
-    fwrite(bytes, 1, containerBitmapFileHeader.bfOffBits, resultFile);
-    
-    
 
-    // int res = 0;
+    int res = 0;
 
-    // // res = modifyPixelData(containerBitmapData, containerBitmapFileHeader.bfSize - containerBitmapFileHeader.bfOffBits, inputFile, packingDegree);
+    res = modifyPixelData(containerBitmapData, containerBitmapFileHeader.bfSize - containerBitmapFileHeader.bfOffBits, inputFile, packingDegree);
 
-    // printf("Modifying operations: %d\n", res);
+    printf("Modifying operations: %d\n", res);
 
-    // for (size_t i = 0; i < containerBitmapFileHeader.bfSize - containerBitmapFileHeader.bfOffBits; i++)
-    // {
-    //     fwrite(&containerBitmapData[i], 1, 1, resultFile);
-    // }
-    
+    res = 0;
+    for (size_t i = 0; i < containerBitmapFileHeader.bfSize - containerBitmapFileHeader.bfOffBits; i++)
+    {
+        fwrite(&containerBitmapData[i], 1, 1, resultFile);
+        res++;
+    }
 
     // res = fwrite(containerBitmapData, sizeof(containerBitmapData), 1, resultFile);
     // printf("Objects written: %d\nEach %lu bytes\n", res, sizeof(containerBitmapData));
 
     fclose(resultFile);
+    fclose(containerFile);
+    fclose(inputFile);
 
     return 0;
 }

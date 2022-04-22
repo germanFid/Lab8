@@ -76,8 +76,8 @@ unsigned char bGetBits(int begin, int end, union byte* b)
     {
         for (int i = begin; i < end; i++)
         {
-            result += bGetBit(i, b);
             result = result << 1;
+            result += bGetBit(i, b);
         }
     }
     

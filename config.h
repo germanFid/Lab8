@@ -1,1 +1,0 @@
-#define EXTENTION_SIZE 6

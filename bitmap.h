@@ -83,13 +83,13 @@ unsigned char *LoadBitmapFile(FILE *filePtr, BITMAPINFOHEADER *bitmapInfoHeader,
         return NULL;
     }
 
-    // swap the R and B values to get RGB (bitmap is BGR)
-    for (imageIdx = 0; imageIdx < bitmapInfoHeader->biSizeImage; imageIdx += 3)
-    {
-        tempRGB = bitmapImage[imageIdx];
-        bitmapImage[imageIdx] = bitmapImage[imageIdx + 2];
-        bitmapImage[imageIdx + 2] = tempRGB;
-    }
+    // // swap the R and B values to get RGB (bitmap is BGR)
+    // for (imageIdx = 0; imageIdx < bitmapInfoHeader->biSizeImage; imageIdx += 3)
+    // {
+    //     tempRGB = bitmapImage[imageIdx];
+    //     bitmapImage[imageIdx] = bitmapImage[imageIdx + 2];
+    //     bitmapImage[imageIdx + 2] = tempRGB;
+    // }
 
     // close file and return bitmap image data
     fclose(filePtr);
