@@ -2,6 +2,8 @@
 #include "ui.h"
 #include "byte.h"
 
+#include <string.h>
+
 #define EXTENTION_SIZE 6
 
 int calculateFileSize(FILE* f)
@@ -32,7 +34,7 @@ int coverPrecheck(BITMAPFILEHEADER containerBitmapFileHeader, FILE* inputFile, i
     return -1;
 }
 
-int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFile ,int degree)
+int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFile , int degree, char* extension)
 {
     int operations = 0;
 
@@ -41,8 +43,46 @@ int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFi
     union byte dataByte;
 
     bitmask = bitmask << degree;
-    printf("--- Bitmask: %X\n\n", bitmask);
+    printf("\n--- Bitmask: %X\n", bitmask);
     int fsize = calculateFileSize(inputFile);
+
+    printf("Writing extension (%lu bytes)...\n", strlen(extension));
+
+    char flag = 0;
+    for (size_t i = 0; i < strlen(extension); i++)
+    {
+        if(!flag)
+        {            
+            if(extension[i] == '.')
+            {
+                flag = 1;
+            }
+
+            continue;
+        }
+
+        printf("Writing %c (%d)\n", extension[i], extension[i]);
+
+        bInit(&dataByte, extension[i]);
+        
+        int read = 1;
+        for (size_t j = 0; j < 8 / degree; j++)
+        {
+            // Берем очередной байт и пересекаем его с битмаской
+            containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
+            containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
+
+            // if (operations < 10)
+            //     printf(" + %X", bGetBits(read, read + degree, &dataByte));
+
+            // if (operations < 10)
+            //     printf(" = %X\n", containerBitmapData[cBitmapDataCounter]);
+
+            read += degree;
+            operations++;
+            cBitmapDataCounter++;
+        }
+    }
 
     for (size_t i = 0; i < fsize; i++)
     {   
@@ -50,36 +90,36 @@ int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFi
         fread(&c, 1, 1, inputFile);
         bInit(&dataByte, c);
 
-        if (operations < 10)
-            printf("--- %X ---\n", c);
+        // if (operations < 10)
+        //     printf("--- %X ---\n", c);
         
         int read = 1;
         for (size_t j = 0; j < 8 / degree; j++)
         {
             // Берем очередной байт и пересекаем его с битмаской
-            if (operations < 10)
-                printf("- %X ", containerBitmapData[cBitmapDataCounter]);
+            // if (operations < 10)
+            //     printf("- %X ", containerBitmapData[cBitmapDataCounter]);
             containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
             
-            if (operations < 10)
-                printf("%X ", containerBitmapData[cBitmapDataCounter]);
+            // if (operations < 10)
+            //     printf("%X ", containerBitmapData[cBitmapDataCounter]);
 
-            if (operations < 10)
-                printf("(%d %d)", read, read + degree);
+            // if (operations < 10)
+            //     printf("(%d %d)", read, read + degree);
             containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
 
-            if (operations < 10)
-                printf(" + %X", bGetBits(read, read + degree, &dataByte));
+            // if (operations < 10)
+            //     printf(" + %X", bGetBits(read, read + degree, &dataByte));
 
-            if (operations < 10)
-                printf(" = %X\n", containerBitmapData[cBitmapDataCounter]);
+            // if (operations < 10)
+            //     printf(" = %X\n", containerBitmapData[cBitmapDataCounter]);
 
             read += degree;
-            // printf("> j\n");
             operations++;
             cBitmapDataCounter++;
         }
     }
+
     return operations;
 }
 
@@ -92,6 +132,16 @@ int main(int argc, char *argv[])
     }
 
     int packingDegree = atoi(argv[3]);
+    char extenstion[EXTENTION_SIZE];
+
+    char start = -1;
+    for (size_t i = 0; i < sizeof(argv[2]); i++)
+    {
+        if(argv[2][i] == '.')
+        {
+            start = i;
+        }
+    }
 
     if (packingDegree > 8 || packingDegree < 1)
     {
@@ -99,8 +149,8 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    FILE *containerFile = fopen(argv[1], "rb");
-    FILE *inputFile = fopen(argv[2], "rb");
+    FILE* containerFile = fopen(argv[1], "rb");
+    FILE* inputFile = fopen(argv[2], "rb");
 
 
     if (containerFile == NULL || inputFile == NULL)
@@ -121,11 +171,6 @@ int main(int argc, char *argv[])
 
     int iHSize = sizeof(containerBitmapInfoHeader);
     int fHSize = sizeof(containerBitmapFileHeader);
-
-    for (size_t i = 0; i < 10; i++)
-    {
-        printf(">>> %X\n", containerBitmapData[i]);
-    }
     
 
     int pCheck = coverPrecheck(containerBitmapFileHeader, inputFile, packingDegree);
@@ -154,20 +199,13 @@ int main(int argc, char *argv[])
     
 
     int res = 0;
-
-    res = modifyPixelData(containerBitmapData, containerBitmapFileHeader.bfSize - containerBitmapFileHeader.bfOffBits, inputFile, packingDegree);
-
+    res = modifyPixelData(containerBitmapData, containerBitmapFileHeader.bfSize - containerBitmapFileHeader.bfOffBits, inputFile, packingDegree, argv[2]);
     printf("Modifying operations: %d\n", res);
 
-    res = 0;
     for (size_t i = 0; i < containerBitmapFileHeader.bfSize - containerBitmapFileHeader.bfOffBits; i++)
     {
         fwrite(&containerBitmapData[i], 1, 1, resultFile);
-        res++;
     }
-
-    // res = fwrite(containerBitmapData, sizeof(containerBitmapData), 1, resultFile);
-    // printf("Objects written: %d\nEach %lu bytes\n", res, sizeof(containerBitmapData));
 
     fclose(resultFile);
     fclose(containerFile);
