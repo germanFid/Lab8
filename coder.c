@@ -100,7 +100,7 @@ int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFi
     }
 
     // Обозначаем конец файла
-    for (size_t i = 0; i < fsize; i++)
+    for (size_t i = 0; i < 3; i++)
     {   
         char c = '.';
         bInit(&dataByte, c);
