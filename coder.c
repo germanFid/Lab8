@@ -49,6 +49,8 @@ int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFi
     printf("Writing extension (%lu bytes)...\n", strlen(extension));
 
     char flag = 0;
+
+    // Пишем расширение файла
     for (size_t i = 0; i < strlen(extension); i++)
     {
         if(!flag)
@@ -57,26 +59,18 @@ int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFi
             {
                 flag = 1;
             }
-
             continue;
         }
 
         printf("Writing %c (%d)\n", extension[i], extension[i]);
-
         bInit(&dataByte, extension[i]);
-        
         int read = 1;
+
         for (size_t j = 0; j < 8 / degree; j++)
         {
             // Берем очередной байт и пересекаем его с битмаской
             containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
             containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
-
-            // if (operations < 10)
-            //     printf(" + %X", bGetBits(read, read + degree, &dataByte));
-
-            // if (operations < 10)
-            //     printf(" = %X\n", containerBitmapData[cBitmapDataCounter]);
 
             read += degree;
             operations++;
@@ -84,35 +78,40 @@ int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFi
         }
     }
 
+    // Пишем содержимое файла
     for (size_t i = 0; i < fsize; i++)
     {   
-        unsigned char c;
+        char c;
         fread(&c, 1, 1, inputFile);
         bInit(&dataByte, c);
-
-        // if (operations < 10)
-        //     printf("--- %X ---\n", c);
         
         int read = 1;
         for (size_t j = 0; j < 8 / degree; j++)
         {
             // Берем очередной байт и пересекаем его с битмаской
-            // if (operations < 10)
-            //     printf("- %X ", containerBitmapData[cBitmapDataCounter]);
             containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
             
-            // if (operations < 10)
-            //     printf("%X ", containerBitmapData[cBitmapDataCounter]);
-
-            // if (operations < 10)
-            //     printf("(%d %d)", read, read + degree);
             containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
 
-            // if (operations < 10)
-            //     printf(" + %X", bGetBits(read, read + degree, &dataByte));
+            read += degree;
+            operations++;
+            cBitmapDataCounter++;
+        }
+    }
 
-            // if (operations < 10)
-            //     printf(" = %X\n", containerBitmapData[cBitmapDataCounter]);
+    // Обозначаем конец файла
+    for (size_t i = 0; i < fsize; i++)
+    {   
+        char c = '.';
+        bInit(&dataByte, c);
+        
+        int read = 1;
+        for (size_t j = 0; j < 8 / degree; j++)
+        {
+            // Берем очередной байт и пересекаем его с битмаской
+            containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
+            
+            containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
 
             read += degree;
             operations++;
