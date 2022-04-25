@@ -114,5 +114,61 @@ int main(int argc, char* argv[]) // <input filename> <packing degree> <output fi
     }
     printf("\n");
 
+    int resultSize = -1; // байт до трех точек (не включительно)
+    int dataEnd = -1; // байт до последней точки
+
+    int dotCounter = 0;
+    for (size_t i = 0; i < buffSize; i++)
+    {
+        if(bufferData[i] == '.')
+        {
+            dotCounter++;
+        }
+
+        if (dotCounter == 3)
+        {
+            if (resultSize == -1)
+            {
+                resultSize = i - 3;
+                dotCounter = 0;
+            }
+
+            else
+            {
+                dataEnd = i - 3;
+                break;
+            }
+        }
+    }
+
+    if (dataEnd == -1)
+    {
+        printWrongFiles();
+        printf("--- INCORECT FORMATTING!!!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char* outExtension = (char*) malloc (dataEnd - (resultSize + 3) + 1);
+
+    int j = 0;
+    for (size_t i = resultSize + 4; i <= dataEnd; i++)
+    {
+        outExtension[j] = bufferData[i];
+        j++;
+    }
+    outExtension[j] = '\0';
+    
+    char* outFilename = (char*) malloc (strlen(argv[3]) + dataEnd - (resultSize + 3) + 2);
+    strcpy(outFilename, argv[3]);
+    strcat(outFilename, ".");
+    strcat(outFilename, outExtension);
+
+    FILE* outFile = fopen(outFilename, "wb");
+    for (size_t i = 0; i <= resultSize; i++)
+    {
+        fwrite(&bufferData[i], 1, 1, outFile);
+    }
+    
+    fclose(outFile);
     fclose(inputFile);
 }
