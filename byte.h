@@ -70,7 +70,6 @@ unsigned char bGetBit(int n, union byte* b)
 unsigned char bGetBits(int begin, int end, union byte* b)
 {
     unsigned char result = 0;
-    int c = end - begin + 1;
 
     if (begin <= 8 && begin >= 1 && end <= 8 && end >= 1)
     {
