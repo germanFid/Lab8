@@ -24,21 +24,21 @@ void writeBufferByte(char inputByte, unsigned char* bufferData, int* bufByte, in
     // }
 
     startBit = 9 - degree;
-    printf("Mode 2\n");
+    // printf("Mode 2\n");
 
-    printf("> %d\n", startBit);
+    // printf("> %d\n", startBit);
     for (size_t i = startBit; i <= 8; i++) // Проход по битам b
     {
         char c = bGetBit(9 - i, &b); // Получаем нужный бит
 
         bufferData[*bufByte] += c << (7 - *bufPosition);
-        printf(">> %d\t%d\t%X\n", *bufByte, *bufPosition, c);
-        printf("%X\n", bufferData[*bufByte]);
+        // printf(">> %d\t%d\t%X\n", *bufByte, *bufPosition, c);
+        // printf("%X\n", bufferData[*bufByte]);
         *bufPosition += 1;
 
         if(*bufPosition > 7)
         {
-            printf("---+>\n");
+            // printf("---+>\n");
             *bufPosition = 0;
             *bufByte += 1;
         }
@@ -59,7 +59,7 @@ void readBuffer(unsigned char *containerBitmapData, int cSize, unsigned char *bu
     }
 
     // Начинаем считывание скрытых байтов
-    for (size_t i = 0; i < 14; i++)
+    for (size_t i = 0; i < cSize; i++)
     {
         char c;
 
@@ -107,11 +107,12 @@ int main(int argc, char* argv[]) // <input filename> <packing degree> <output fi
     bufferData = (unsigned char*) malloc(buffSize);
     readBuffer(containerBitmapData, containerBitmapFileHeader.bfSize, bufferData, buffSize, packingDegree);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 100; i++)
     {
-        printf("> %d %X %c\n", i, bufferData[i], bufferData[i]);
+        // printf("> %d %X %c\n", i, bufferData[i], bufferData[i]);
+        printf("%X ", bufferData[i]);
     }
-    
+    printf("\n");
 
     fclose(inputFile);
 }
