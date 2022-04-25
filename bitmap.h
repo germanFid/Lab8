@@ -95,3 +95,12 @@ unsigned char *LoadBitmapFile(FILE *filePtr, BITMAPINFOHEADER *bitmapInfoHeader,
     fclose(filePtr);
     return bitmapImage;
 }
+
+int calculateFileSize(FILE* f)
+{
+    fseek(f, 0, SEEK_END);
+    int res = ftell(f);
+
+    fseek(f, 0, SEEK_SET);
+    return res;
+}
