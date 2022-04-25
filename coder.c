@@ -25,112 +25,89 @@ int coverPrecheck(BITMAPFILEHEADER containerBitmapFileHeader, FILE* inputFile, i
     return -1;
 }
 
-int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFile , int degree, char* extension)
+void writeByte(char inputByte, unsigned char *containerBitmapData, int *numByte, int *numPosition, int degree)
 {
-    int operations = 0;
+    printf("--- %c %X ---\n", inputByte, inputByte);
+    union byte b;
+    bInit(&b, inputByte);
 
-    unsigned char bitmask = -1;
-    unsigned int cBitmapDataCounter = 0;
-    union byte dataByte;
+    for (size_t i = 8; i >= 1; i--)
+    {
+        char c = bGetBit(i, &b);
+        containerBitmapData[*numByte] += c << *numPosition;
+        printf(">> %d\t%d\t%X\n", *numByte, *numPosition, c);
+        *numPosition -= 1;
 
-    bitmask = bitmask << degree;
+        if (*numPosition < 0)
+        {
+            *numByte += 1;
+            containerBitmapData[*numByte] = containerBitmapData[*numByte] & ((unsigned char)-1 << degree);
+            *numPosition = degree - 1;
+        }
+    }
+    
+}
+
+void modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFile , int degree, char* extension)
+{
+    unsigned char bitmask = (unsigned char)-1 << degree;
+
+    // bitmask = bitmask << degree;
     printf("\n--- Bitmask: %X\n", bitmask);
     int fsize = calculateFileSize(inputFile);
 
-    printf("Writing extension (%lu bytes)...\n", strlen(extension));
-
-    char flag = 0;
+    union byte dataByte;
+    int numByte = 0, numPosition = degree - 1;
+    containerBitmapData[numByte] = containerBitmapData[numByte] & ((unsigned char)-1 << degree);
 
     // Пишем содержимое файла
-    for (size_t i = 0; i < fsize; i++) 
+    for (size_t i = 0; i < fsize; i++)
     {   
         char c;
         fread(&c, 1, 1, inputFile);
         bInit(&dataByte, c);
         
-        int read = 1;
-        for (size_t j = 0; j < 8 / degree; j++)
-        {
-            // Берем очередной байт и пересекаем его с битмаской
-            containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
-            
-            containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
-
-            read += degree;
-            operations++;
-            cBitmapDataCounter++;
-        }
+        writeByte(c, containerBitmapData, &numByte, &numPosition, degree);
     }
 
-    // Обозначаем конец файла
+    // Пишем три точки, обозначающие начало расширения
     for (size_t i = 0; i < 3; i++)
     {   
         char c = '.';
         bInit(&dataByte, c);
         
-        int read = 1;
-        for (size_t j = 0; j < 8 / degree; j++)
-        {
-            // Берем очередной байт и пересекаем его с битмаской
-            containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
-            
-            containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
-
-            read += degree;
-            operations++;
-            cBitmapDataCounter++;
-        }
+        writeByte(c, containerBitmapData, &numByte, &numPosition, degree);
     }
 
-    // Пишем расширение файла
+    int flag = 0;
+    // Пишем расширение (то, что после точки в имени файла)
     for (size_t i = 0; i < strlen(extension); i++)
-    {
+    {   
+        char c = extension[i];
+        
         if(!flag)
-        {            
-            if(extension[i] == '.')
+        {
+            if(c == '.')
             {
                 flag = 1;
             }
-            continue;
         }
 
-        printf("Writing %c (%d)\n", extension[i], extension[i]);
-        bInit(&dataByte, extension[i]);
-        int read = 1;
-
-        for (size_t j = 0; j < 8 / degree; j++)
+        else
         {
-            // Берем очередной байт и пересекаем его с битмаской
-            containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
-            containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
-
-            read += degree;
-            operations++;
-            cBitmapDataCounter++;
+            bInit(&dataByte, c);
+            writeByte(c, containerBitmapData, &numByte, &numPosition, degree);
         }
     }
 
-    // Обозначаем конец расширения
+    // Пишем три точки, обозначающие конец расширения
     for (size_t i = 0; i < 3; i++)
     {   
         char c = '.';
         bInit(&dataByte, c);
         
-        int read = 1;
-        for (size_t j = 0; j < 8 / degree; j++)
-        {
-            // Берем очередной байт и пересекаем его с битмаской
-            containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
-            
-            containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
-
-            read += degree;
-            operations++;
-            cBitmapDataCounter++;
-        }
+        writeByte(c, containerBitmapData, &numByte, &numPosition, degree);
     }
-
-    return operations;
 }
 
 int main(int argc, char *argv[])
@@ -208,9 +185,7 @@ int main(int argc, char *argv[])
     }
     
 
-    int res = 0;
-    res = modifyPixelData(containerBitmapData, containerBitmapFileHeader.bfSize - containerBitmapFileHeader.bfOffBits, inputFile, packingDegree, argv[2]);
-    printf("Modifying operations: %d\n", res);
+    modifyPixelData(containerBitmapData, containerBitmapFileHeader.bfSize - containerBitmapFileHeader.bfOffBits, inputFile, packingDegree, argv[2]);
 
     for (size_t i = 0; i < containerBitmapFileHeader.bfSize - containerBitmapFileHeader.bfOffBits; i++)
     {
