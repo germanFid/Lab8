@@ -41,7 +41,7 @@ int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFi
 
     char flag = 0;
 
-    // Пишем содержи-мое файла
+    // Пишем содержимое файла
     for (size_t i = 0; i < fsize; i++) 
     {   
         char c;
