@@ -3,4 +3,4 @@
 ``coder <container filename> <input filename> <packing degree>``
 
 ## Decoder
-``decoder <input filename> <packing degree>``
+``decoder <input filename> <packing degree> <output filename>``
