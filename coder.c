@@ -6,15 +6,6 @@
 
 #define EXTENTION_SIZE 6
 
-int calculateFileSize(FILE* f)
-{
-    fseek(f, 0, SEEK_END);
-    int res = ftell(f);
-
-    fseek(f, 0, SEEK_SET);
-    return res;
-}
-
 int coverPrecheck(BITMAPFILEHEADER containerBitmapFileHeader, FILE* inputFile, int degree)
 {
     int iSize = calculateFileSize(inputFile);
@@ -50,6 +41,47 @@ int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFi
 
     char flag = 0;
 
+    // Пишем содержи-мое файла
+    for (size_t i = 0; i < fsize; i++) 
+    {   
+        char c;
+        fread(&c, 1, 1, inputFile);
+        bInit(&dataByte, c);
+        
+        int read = 1;
+        for (size_t j = 0; j < 8 / degree; j++)
+        {
+            // Берем очередной байт и пересекаем его с битмаской
+            containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
+            
+            containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
+
+            read += degree;
+            operations++;
+            cBitmapDataCounter++;
+        }
+    }
+
+    // Обозначаем конец файла
+    for (size_t i = 0; i < 3; i++)
+    {   
+        char c = '.';
+        bInit(&dataByte, c);
+        
+        int read = 1;
+        for (size_t j = 0; j < 8 / degree; j++)
+        {
+            // Берем очередной байт и пересекаем его с битмаской
+            containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
+            
+            containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
+
+            read += degree;
+            operations++;
+            cBitmapDataCounter++;
+        }
+    }
+
     // Пишем расширение файла
     for (size_t i = 0; i < strlen(extension); i++)
     {
@@ -78,28 +110,7 @@ int modifyPixelData(unsigned char *containerBitmapData, int cSize, FILE* inputFi
         }
     }
 
-    // Пишем содержимое файла
-    for (size_t i = 0; i < fsize; i++)
-    {   
-        char c;
-        fread(&c, 1, 1, inputFile);
-        bInit(&dataByte, c);
-        
-        int read = 1;
-        for (size_t j = 0; j < 8 / degree; j++)
-        {
-            // Берем очередной байт и пересекаем его с битмаской
-            containerBitmapData[cBitmapDataCounter] = containerBitmapData[cBitmapDataCounter] & bitmask;
-            
-            containerBitmapData[cBitmapDataCounter] += bGetBits(read, read + degree, &dataByte);
-
-            read += degree;
-            operations++;
-            cBitmapDataCounter++;
-        }
-    }
-
-    // Обозначаем конец файла
+    // Обозначаем конец расширения
     for (size_t i = 0; i < 3; i++)
     {   
         char c = '.';
